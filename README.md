@@ -43,7 +43,5 @@ Input (300 features) → Linear Transform → Softmax → Probabilities (9 class
 8. Stop when convergence threshold is met or max iterations reached
 
 **Generated Files:**
-- `validation_predictions.txt`: Sample-by-sample predictions with confidence scores
 - `test_predictions.txt`: Predictions on test set
-- `confusion_matrix_validation.png`: Visual confusion matrix
 - `confusion_matrix_test.png`: Test set confusion matrix
