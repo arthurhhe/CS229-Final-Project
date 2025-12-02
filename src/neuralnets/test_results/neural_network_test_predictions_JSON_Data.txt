@@ -1,0 +1,13 @@
+Neural Network Test Predictions - JSON Data
+==================================================
+Sample,True_Label,Predicted_Label,Confidence
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_22_2,5,6,0.9999
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_28_1,4d,4,0.9771
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_59_1,5,4,0.5436
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_67_1,4,4x,0.6603
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_112_1,4d,6d,0.6821
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_64_1,4,6,1.0000
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_65_1,6n,4n,0.7306
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_65_2,6,4x,0.9798
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_66_1,4n,6d,0.5072
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_66_2,6,6,0.8449

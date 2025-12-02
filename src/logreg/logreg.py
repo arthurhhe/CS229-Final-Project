@@ -292,6 +292,22 @@ def plot_confusion_matrix(y_true, y_pred, class_names, save_path):
     plt.close()
     print(f"Confusion matrix saved to {save_path}")
 
+def grouped_accuracy_int(y_true, y_pred, class_names):
+    group_map = {
+        '4': '4', '4d': '4', '4n': '4', '4w': '4', '4x': '4',
+        '5': '5',
+        '6': '6', '6d': '6', '6n': '6'
+    }
+
+    correct = 0
+    for yt, yp in zip(y_true, y_pred):
+        true_label = class_names[yt]
+        pred_label = class_names[yp]
+
+        if group_map[true_label] == group_map[pred_label]:
+            correct += 1
+
+    return correct / len(y_true)
 
 def main():
     """
@@ -403,6 +419,8 @@ def main():
             class_acc = np.mean(train_predictions[mask] == y_train_enc[mask])
             print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
     
+    train_group_acc = grouped_accuracy_int(y_train_enc, train_predictions, class_names)
+    print(f"\n\nTraining Grouped Accuracy: {train_group_acc:.4f}")
     # Evaluate on test set if available
     if len(X_test) > 0:
         print("\n" + "="*50)
@@ -437,6 +455,9 @@ def main():
                 class_acc = np.mean(test_predictions[mask] == y_test_enc[mask])
                 print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
     
+        test_group_acc  = grouped_accuracy_int(y_test_enc, test_predictions, class_names)
+        print(f"\n\nTest Grouped Accuracy: {test_group_acc:.4f}")
+
     print("\n" + "="*50)
     print("Training complete!")
     print("="*50)

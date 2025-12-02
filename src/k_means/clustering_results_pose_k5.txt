@@ -1,0 +1,66 @@
+K-Means Clustering Results
+Feature type: pose
+Number of clusters: 5
+Number of samples: 36
+Number of features: 300
+
+Cluster Assignments:
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_1_1: Cluster 4
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_3_1: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_4_1: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_22_1: Cluster 4
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_24_1: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_26_2: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_28_2: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_30_1: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_30_2: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_31_1: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_57_1: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_58_1: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_58_2: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_60_1: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_68_2: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_70_1: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_90_2: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_92_2: Cluster 1
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_93_2: Cluster 3
+20250126-M-Australian_Open-F-Jannik_Sinner-Alexander_Zverev_112_2: Cluster 1
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_15_1: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_15_2: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_18_1: Cluster 2
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_19_1: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_20_1: Cluster 2
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_21_1: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_22_1: Cluster 4
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_22_2: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_23_1: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_44_1: Cluster 4
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_45_2: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_46_1: Cluster 2
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_46_2: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_47_1: Cluster 0
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_48_1: Cluster 4
+20240908-M-US_Open-F-Taylor_Fritz-Jannik_Sinner_48_1: Cluster 4
+
+
+Centroids:
+
+Cluster 0 centroid (first 10 features):
+[-0.26412394  0.24974006  0.8364211  -0.87915834 -0.97920568 -0.17813722
+ -0.88060501 -0.97802561 -0.01058395 -0.89031623]
+
+Cluster 1 centroid (first 10 features):
+[ 0.73825353 -0.26948433 -0.75686791  1.32422403  0.92982028  0.24408359
+  1.32300526  0.90834013 -0.31628747  1.33951396]
+
+Cluster 2 centroid (first 10 features):
+[-0.60917282 -1.13144942 -0.81121344  0.14180091 -0.78102807 -0.24639095
+  0.14774549 -0.79837102  0.88114957  0.12813642]
+
+Cluster 3 centroid (first 10 features):
+[-0.59509529  0.73917599  0.65734874 -0.9296381   0.96857626  0.26771072
+ -0.92770802  1.00303124 -0.07233348 -0.90014504]
+
+Cluster 4 centroid (first 10 features):
+[ 0.26381015 -0.34531282 -0.46404339  0.28031449 -0.98181292 -0.3733523
+  0.27897003 -0.98505128  0.19889156  0.23907626]

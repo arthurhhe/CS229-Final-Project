@@ -1,0 +1,11 @@
+Sample,True_Label,Predicted_Label,True_Base,Predicted_Base
+0,4,6,4,6
+1,6,6n,6,6
+2,4x,4d,4,4
+3,4n,4d,4,4
+4,6,6d,6,6
+5,4,6d,4,6
+6,6,6,6,6
+7,5,4x,5,4
+8,4,6,4,6
+9,6d,6,6,6
