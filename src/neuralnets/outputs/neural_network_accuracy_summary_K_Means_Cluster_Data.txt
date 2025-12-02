@@ -1,0 +1,18 @@
+Neural Network Results - K Means Cluster Data
+==================================================
+
+Model: Neural Network
+Activation Function: Sigmoid
+Data Source: K Means Cluster Data
+Training Accuracy (Exact Match): 0.0556
+Training Accuracy (Grouped by Base Number): 0.3056
+Test Accuracy (Exact Match): 0.1000
+Test Accuracy (Grouped by Base Number): 0.1000
+
+Per-class Test Accuracy:
+  4: Exact=0.0000, Grouped=0.0000 (2 samples)
+  4d: Exact=0.0000, Grouped=0.0000 (2 samples)
+  4n: Exact=0.0000, Grouped=0.0000 (1 samples)
+  5: Exact=0.0000, Grouped=0.0000 (2 samples)
+  6: Exact=0.5000, Grouped=0.5000 (2 samples)
+  6n: Exact=0.0000, Grouped=0.0000 (1 samples)

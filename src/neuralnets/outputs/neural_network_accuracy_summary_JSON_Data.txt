@@ -1,0 +1,18 @@
+Neural Network Results - JSON Data
+==================================================
+
+Model: Neural Network
+Activation Function: Sigmoid
+Data Source: JSON Data
+Training Accuracy (Exact Match): 0.2500
+Training Accuracy (Grouped by Base Number): 0.2778
+Test Accuracy (Exact Match): 0.2000
+Test Accuracy (Grouped by Base Number): 0.4000
+
+Per-class Test Accuracy:
+  4: Exact=0.0000, Grouped=0.0000 (2 samples)
+  4d: Exact=0.0000, Grouped=1.0000 (2 samples)
+  4n: Exact=0.0000, Grouped=0.0000 (1 samples)
+  5: Exact=1.0000, Grouped=1.0000 (2 samples)
+  6: Exact=0.0000, Grouped=0.0000 (2 samples)
+  6n: Exact=0.0000, Grouped=0.0000 (1 samples)

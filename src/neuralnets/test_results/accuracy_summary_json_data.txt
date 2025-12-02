@@ -1,0 +1,13 @@
+Neural Network Results - json_data
+==================================================
+
+Training Accuracy: 0.6389
+Test Accuracy: 0.1000
+
+Per-class Test Accuracy:
+  4: 0.0000 (2 samples)
+  4d: 0.0000 (2 samples)
+  4n: 0.0000 (1 samples)
+  5: 0.0000 (2 samples)
+  6: 0.5000 (2 samples)
+  6n: 0.0000 (1 samples)
