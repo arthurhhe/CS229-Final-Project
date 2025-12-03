@@ -37,11 +37,10 @@ def softmax(x):
     softmax = np.zeros((batch_size, number_of_classes))
 
     for i in range(batch_size):
-        max_value = np.argmax(x[i])
-        row = np.exp(x[i] - x[i][max_value])
+        max_value = np.max(x[i])  # FIX: Use np.max to get the maximum value, not np.argmax
+        row = np.exp(x[i] - max_value)
         denominator = np.sum(row)
-        for j in range(number_of_classes):
-            softmax[i][j] = row[j] / denominator
+        softmax[i] = row / denominator  # Vectorized assignment is more efficient
 
     return softmax
 

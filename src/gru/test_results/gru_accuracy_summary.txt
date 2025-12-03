@@ -1,0 +1,10 @@
+GRU Model Results
+==================================================
+
+Training Accuracy: 0.5750
+Test Accuracy: 0.6000
+
+Per-class Test Accuracy:
+  4: 1.0000 (5 samples)
+  5: 0.0000 (2 samples)
+  6: 0.3333 (3 samples)
