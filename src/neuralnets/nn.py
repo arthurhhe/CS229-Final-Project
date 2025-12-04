@@ -363,36 +363,16 @@ def extract_base_number(label_str):
         return label_str[0]
     return label_str
 
-
-def compute_grouped_accuracy(predictions, true_labels, class_names):
+def map_to_base_label(label_str):
     """
-    Compute accuracy where predictions are correct if they match the base number.
-    E.g., "4d" predicted as "4" is correct, "6n" predicted as "6" is correct.
-    
-    Args:
-        predictions: Array of predicted class indices
-        true_labels: Array of true class indices
-        class_names: List of class name strings
-    
-    Returns:
-        Accuracy as a float
+    Map labels like '4d','4n','4x' -> '4', and '6d','6n' -> '6'.
+    Leaves '5' unchanged. Returns the string label.
     """
-    if len(predictions) == 0:
-        return 0.0
-    
-    correct = 0
-    for pred_idx, true_idx in zip(predictions, true_labels):
-        pred_label = class_names[pred_idx]
-        true_label = class_names[true_idx]
-        
-        pred_base = extract_base_number(pred_label)
-        true_base = extract_base_number(true_label)
-        
-        if pred_base == true_base:
-            correct += 1
-    
-    return correct / len(predictions)
-
+    if label_str.startswith('4'):
+        return '4'
+    if label_str.startswith('6'):
+        return '6'
+    return label_str  # e.g. "5"
 
 def one_hot_labels(labels, num_classes):
     one_hot_labels = np.zeros((labels.size, num_classes))
@@ -635,10 +615,8 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, train_ids, test_ids,
     
     # Compute both exact and grouped accuracy
     train_accuracy_exact = compute_accuracy(train_output, y_train_onehot)
-    train_accuracy_grouped = compute_grouped_accuracy(train_predictions, y_train, class_names)
     
     print(f"Training Accuracy (Exact Match): {train_accuracy_exact:.4f}")
-    print(f"Training Accuracy (Grouped by Base Number): {train_accuracy_grouped:.4f}")
     
     # Per-class accuracy on training set
     print(f"\nPer-class accuracy (Training - {data_source_display}):")
@@ -649,8 +627,7 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, train_ids, test_ids,
             # Grouped accuracy for this class
             class_preds = train_predictions[mask]
             class_true = y_train[mask]
-            class_acc_grouped = compute_grouped_accuracy(class_preds, class_true, class_names)
-            print(f"  {class_name}: Exact={class_acc_exact:.4f}, Grouped={class_acc_grouped:.4f} ({np.sum(mask)} samples)")
+            print(f"  {class_name}: Exact={class_acc_exact:.4f}, ({np.sum(mask)} samples)")
     
     # Evaluate on test set
     if len(X_test) > 0:
@@ -663,10 +640,8 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, train_ids, test_ids,
         
         # Compute both exact and grouped accuracy
         test_accuracy_exact = compute_accuracy(test_output, y_test_onehot)
-        test_accuracy_grouped = compute_grouped_accuracy(test_predictions, y_test, class_names)
         
         print(f"Test Accuracy (Exact Match): {test_accuracy_exact:.4f}")
-        print(f"Test Accuracy (Grouped by Base Number): {test_accuracy_grouped:.4f}")
         
         # Save test predictions (matching logreg format)
         test_pred_path = output_dir / f'test_predictions_{data_source_name}.txt'
@@ -693,8 +668,7 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, train_ids, test_ids,
                 # Grouped accuracy for this class
                 class_preds = test_predictions[mask]
                 class_true = y_test[mask]
-                class_acc_grouped = compute_grouped_accuracy(class_preds, class_true, class_names)
-                print(f"  {class_name}: Exact={class_acc_exact:.4f}, Grouped={class_acc_grouped:.4f} ({np.sum(mask)} samples)")
+                print(f"  {class_name}: Exact={class_acc_exact:.4f}, ({np.sum(mask)} samples)")
         
         # Save accuracy summary
         accuracy_summary_path = output_dir / f'neural_network_accuracy_summary_{data_source_name}.txt'
@@ -705,9 +679,7 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, train_ids, test_ids,
             f.write(f"Activation Function: {activation_name}\n")
             f.write(f"Data Source: {data_source_display}\n")
             f.write(f"Training Accuracy (Exact Match): {train_accuracy_exact:.4f}\n")
-            f.write(f"Training Accuracy (Grouped by Base Number): {train_accuracy_grouped:.4f}\n")
             f.write(f"Test Accuracy (Exact Match): {test_accuracy_exact:.4f}\n")
-            f.write(f"Test Accuracy (Grouped by Base Number): {test_accuracy_grouped:.4f}\n\n")
             f.write("Per-class Test Accuracy:\n")
             for i, class_name in enumerate(class_names):
                 mask = y_test == i
@@ -715,11 +687,10 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, train_ids, test_ids,
                     class_acc_exact = np.mean(test_predictions[mask] == y_test[mask])
                     class_preds = test_predictions[mask]
                     class_true = y_test[mask]
-                    class_acc_grouped = compute_grouped_accuracy(class_preds, class_true, class_names)
-                    f.write(f"  {class_name}: Exact={class_acc_exact:.4f}, Grouped={class_acc_grouped:.4f} ({np.sum(mask)} samples)\n")
+                    f.write(f"  {class_name}: Exact={class_acc_exact:.4f}, ({np.sum(mask)} samples)\n")
         print(f"Accuracy summary saved to {accuracy_summary_path}")
     
-    return params, train_accuracy_grouped, test_accuracy_grouped if len(X_test) > 0 else None
+    return params
 
 
 def main():
@@ -748,7 +719,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Define class names
-    class_names = ['4', '4d', '4n', '4w', '4x', '5', '6', '6d', '6n']
+    class_names = ['4', '5', '6']
     num_classes = len(class_names)
     
     # Load labels
@@ -757,8 +728,11 @@ def main():
     print(f"Total samples in CSV: {len(df)}")
     
     # Split based on "Test Set" column
+    print("CSV columns:", df.columns.tolist())
     df_test = df[df['Test Set'] == 'Test'].copy()
     df_train = df[df['Test Set'] != 'Test'].copy()
+    #df_train['Serve Type'] = df_train['Serve Type'].apply(map_to_base_label)
+    df_test['Serve Result'] = df_test['Serve Result'].apply(map_to_base_label)
     
     print(f"Training samples in CSV: {len(df_train)}")
     print(f"Test samples in CSV: {len(df_test)}")
@@ -784,12 +758,14 @@ def main():
         return
     
     # Encode labels
+    y_train_json = [map_to_base_label(label) for label in y_train_json]
     y_train_json_enc = np.array([class_names.index(label) for label in y_train_json])
     if len(X_test_json) > 0:
+        y_test_json = [map_to_base_label(label) for label in y_test_json]
         y_test_json_enc = np.array([class_names.index(label) for label in y_test_json])
     else:
         y_test_json_enc = np.array([])
-    
+        
     # Normalize features
     print("\nNormalizing features...")
     mean_json = np.mean(X_train_json, axis=0)
