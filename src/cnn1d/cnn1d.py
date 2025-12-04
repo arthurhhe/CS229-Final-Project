@@ -90,19 +90,22 @@ def map_label_to_direction(label):
     Maps faults (4d, 4n, 4w, 4x, 6d, 6n) to their base direction (4 or 6).
     
     Args:
-        label: String label like '4', '4d', '5', '6', '6n', etc.
+        label: String or numeric label like '4', '4d', 4, '5', '6', '6n', etc.
     
     Returns:
         Mapped label: '4', '5', or '6'
     """
-    if label.startswith('4'):
+    # Convert to string if not already
+    label_str = str(label)
+    
+    if label_str.startswith('4'):
         return '4'
-    elif label.startswith('5'):
+    elif label_str.startswith('5'):
         return '5'
-    elif label.startswith('6'):
+    elif label_str.startswith('6'):
         return '6'
     else:
-        raise ValueError(f"Unknown label: {label}")
+        raise ValueError(f"Unknown label: {label} (type: {type(label)})")
 
 
 def pad_sequences(sequences, max_length=None, pad_value=0.0):
@@ -841,10 +844,11 @@ def plot_confusion_matrix(y_true, y_pred, class_names, save_path):
 def main():
     """
     Main function to train and evaluate 1D CNN model for tennis serve classification.
-    Uses the same data loading pattern as logreg.py.
+    Randomly splits 100 examples into train (70), dev (15), and test (15).
     """
     # Set random seed for reproducibility
-    np.random.seed(42)
+    seed = 4
+    np.random.seed(seed)
     
     # Paths
     project_dir = Path(__file__).parent.parent.parent
@@ -858,50 +862,73 @@ def main():
     df = pd.read_csv(labels_path)
     print(f"Total samples in CSV: {len(df)}")
     
-    # Split based on "Test Set" column (same as logreg.py)
-    df_test = df[df['Test Set'] == 'Test'].copy()
-    df_train = df[df['Test Set'] != 'Test'].copy()
+    # Load all sequence data first
+    print("\nLoading all sequence data...")
+    X_all_seq, y_all_raw, all_ids, seq_lens_all = load_sequence_data(
+        str(keypoints_dir), df)
+    print(f"Loaded {len(X_all_seq)} total sequences")
     
-    print(f"Training samples in CSV: {len(df_train)}")
-    print(f"Test samples in CSV: {len(df_test)}")
-    
-    # Load sequence data (not aggregated)
-    print("\nLoading sequence data for training set...")
-    X_train_seq, y_train_raw, train_ids, seq_lens_train = load_sequence_data(
-        str(keypoints_dir), df_train)
-    print(f"Loaded {len(X_train_seq)} training sequences")
-    print(f"Sequence lengths - Min: {min(seq_lens_train)}, Max: {max(seq_lens_train)}, "
-          f"Mean: {np.mean(seq_lens_train):.1f}")
-    
-    print("\nLoading sequence data for test set...")
-    X_test_seq, y_test_raw, test_ids, seq_lens_test = load_sequence_data(
-        str(keypoints_dir), df_test)
-    print(f"Loaded {len(X_test_seq)} test sequences")
-    if len(X_test_seq) > 0:
-        print(f"Sequence lengths - Min: {min(seq_lens_test)}, Max: {max(seq_lens_test)}, "
-              f"Mean: {np.mean(seq_lens_test):.1f}")
-    
-    if len(X_train_seq) == 0:
-        print("Error: No training data loaded!")
+    if len(X_all_seq) == 0:
+        print("Error: No data loaded!")
         return
+    
+    print(f"Sequence lengths - Min: {min(seq_lens_all)}, Max: {max(seq_lens_all)}, "
+          f"Mean: {np.mean(seq_lens_all):.1f}")
     
     # Map labels to 3 classes (4, 5, 6)
     print("\nMapping labels to 3 classes (4, 5, 6)...")
     direction_classes = ['4', '5', '6']
     direction_to_idx = {d: i for i, d in enumerate(direction_classes)}
     
-    y_train = np.array([direction_to_idx[map_label_to_direction(label)] for label in y_train_raw])
-    if len(X_test_seq) > 0:
-        y_test = np.array([direction_to_idx[map_label_to_direction(label)] for label in y_test_raw])
-    else:
-        y_test = np.array([])
+    # Convert labels to strings if they're not already (handles numeric labels)
+    y_all_raw_str = [str(label) for label in y_all_raw]
+    y_all = np.array([direction_to_idx[map_label_to_direction(label)] for label in y_all_raw_str])
     
-    print(f"Label distribution (training):")
+    print(f"Label distribution (all data):")
     for i, cls in enumerate(direction_classes):
-        count = np.sum(y_train == i)
+        count = np.sum(y_all == i)
         print(f"  {cls}: {count} samples")
     
-    # Normalize features (compute stats from training data)
+    # Randomly split into train (70), dev (15), test (15)
+    n_total = len(X_all_seq)
+    n_train = 70
+    n_dev = 15
+    n_test = 15
+    
+    if n_total != n_train + n_dev + n_test:
+        print(f"Warning: Total samples ({n_total}) doesn't match expected split (70+15+15=100)")
+        print(f"Adjusting split to match available data...")
+        n_test = n_total - n_train - n_dev
+    
+    # Shuffle indices
+    indices = np.random.permutation(n_total)
+    
+    train_indices = indices[:n_train]
+    dev_indices = indices[n_train:n_train + n_dev]
+    test_indices = indices[n_train + n_dev:n_train + n_dev + n_test]
+    
+    # Split data
+    X_train_seq = [X_all_seq[i] for i in train_indices]
+    y_train_raw = [y_all_raw_str[i] for i in train_indices]
+    seq_lens_train = [seq_lens_all[i] for i in train_indices]
+    y_train = y_all[train_indices]
+    
+    X_dev_seq = [X_all_seq[i] for i in dev_indices]
+    y_dev_raw = [y_all_raw_str[i] for i in dev_indices]
+    seq_lens_dev = [seq_lens_all[i] for i in dev_indices]
+    y_dev = y_all[dev_indices]
+    
+    X_test_seq = [X_all_seq[i] for i in test_indices]
+    y_test_raw = [y_all_raw_str[i] for i in test_indices]
+    seq_lens_test = [seq_lens_all[i] for i in test_indices]
+    y_test = y_all[test_indices]
+    
+    print(f"\nData split:")
+    print(f"  Training: {len(X_train_seq)} samples")
+    print(f"  Dev/Eval: {len(X_dev_seq)} samples")
+    print(f"  Test: {len(X_test_seq)} samples")
+    
+    # Normalize features (compute stats from training data only)
     print("\nNormalizing features...")
     # Flatten all training sequences to compute statistics
     all_train_features = np.concatenate(X_train_seq, axis=0)
@@ -911,49 +938,29 @@ def main():
     
     # Normalize each sequence
     X_train_norm = [(seq - mean) / std for seq in X_train_seq]
-    if len(X_test_seq) > 0:
-        X_test_norm = [(seq - mean) / std for seq in X_test_seq]
-    else:
-        X_test_norm = []
+    X_dev_norm = [(seq - mean) / std for seq in X_dev_seq]
+    X_test_norm = [(seq - mean) / std for seq in X_test_seq]
     
     # Pad sequences to same length
     print("\nPadding sequences...")
-    max_length = max(seq_lens_train)
-    if len(seq_lens_test) > 0:
-        max_length = max(max_length, max(seq_lens_test))
+    max_length = max(seq_lens_train + seq_lens_dev + seq_lens_test)
     
     X_train_padded, seq_lens_train_arr = pad_sequences(X_train_norm, max_length=max_length)
-    if len(X_test_norm) > 0:
-        X_test_padded, seq_lens_test_arr = pad_sequences(X_test_norm, max_length=max_length)
-    else:
-        X_test_padded = np.array([]).reshape(0, max_length, X_train_padded.shape[2])
-        seq_lens_test_arr = np.array([])
+    X_dev_padded, seq_lens_dev_arr = pad_sequences(X_dev_norm, max_length=max_length)
+    X_test_padded, seq_lens_test_arr = pad_sequences(X_test_norm, max_length=max_length)
     
     print(f"Padded sequences to length: {max_length}")
     print(f"Training data shape: {X_train_padded.shape}")
-    if len(X_test_padded) > 0:
-        print(f"Test data shape: {X_test_padded.shape}")
+    print(f"Dev data shape: {X_dev_padded.shape}")
+    print(f"Test data shape: {X_test_padded.shape}")
     
-    # Split training data into train and dev sets (80/20)
-    n_train = len(X_train_padded)
-    n_dev = int(0.2 * n_train)
-    indices = np.random.permutation(n_train)
-    
-    dev_indices = indices[:n_dev]
-    train_indices = indices[n_dev:]
-    
-    X_train_split = X_train_padded[train_indices]
-    y_train_split = y_train[train_indices]
-    seq_lens_train_split = seq_lens_train_arr[train_indices]
-    
-    X_dev = X_train_padded[dev_indices]
-    y_dev = y_train[dev_indices]
-    seq_lens_dev = seq_lens_train_arr[dev_indices]
-    
-    print(f"\nFinal split:")
-    print(f"  Training: {len(X_train_split)} samples")
-    print(f"  Dev: {len(X_dev)} samples")
-    print(f"  Test: {len(X_test_padded)} samples")
+    # Convert to numpy arrays
+    y_train = np.array(y_train)
+    y_dev = np.array(y_dev)
+    y_test = np.array(y_test)
+    seq_lens_train_arr = np.array(seq_lens_train_arr)
+    seq_lens_dev_arr = np.array(seq_lens_dev_arr)
+    seq_lens_test_arr = np.array(seq_lens_test_arr)
     
     # Create and train 1D CNN model
     print("\n" + "="*50)
@@ -982,12 +989,12 @@ def main():
     
     # Train model
     train_losses, dev_losses, train_accuracies, dev_accuracies = train_cnn1d(
-        model, X_train_split, y_train_split, X_dev, y_dev,
-        seq_lens_train_split, seq_lens_dev,
+        model, X_train_padded, y_train, X_dev_padded, y_dev,
+        seq_lens_train_arr, seq_lens_dev_arr,
         learning_rate=0.01, num_epochs=50, batch_size=16, verbose=True
     )
     
-    # Evaluate on full training set
+    # Evaluate on training set
     print("\n" + "="*50)
     print("Training Set Results")
     print("="*50)
@@ -1002,6 +1009,23 @@ def main():
         mask = y_train == i
         if np.sum(mask) > 0:
             class_acc = np.mean(train_preds[mask] == y_train[mask])
+            print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
+    
+    # Evaluate on dev set
+    print("\n" + "="*50)
+    print("Dev/Eval Set Results")
+    print("="*50)
+    dev_probs, _ = model.forward(X_dev_padded, seq_lens_dev_arr)
+    dev_preds = np.argmax(dev_probs, axis=1)
+    dev_acc = compute_accuracy(dev_preds, y_dev)
+    print(f"Dev Accuracy: {dev_acc:.4f}")
+    
+    # Per-class accuracy on dev set
+    print("\nPer-class accuracy (Dev):")
+    for i, class_name in enumerate(direction_classes):
+        mask = y_dev == i
+        if np.sum(mask) > 0:
+            class_acc = np.mean(dev_preds[mask] == y_dev[mask])
             print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
     
     # Evaluate on test set
@@ -1023,7 +1047,7 @@ def main():
                 print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
         
         # Save test predictions
-        test_pred_path = output_dir / 'cnn1d_test_predictions.txt'
+        test_pred_path = output_dir / f'cnn1d_test_predictions_seed_{seed}.txt'
         with open(test_pred_path, 'w') as f:
             f.write("Sample,True_Label,Predicted_Label,Confidence\n")
             for i in range(len(y_test)):
@@ -1034,15 +1058,17 @@ def main():
         print(f"\nTest predictions saved to {test_pred_path}")
         
         # Plot confusion matrix
-        cm_path = output_dir / 'cnn1d_confusion_matrix.png'
+        cm_path = output_dir / f'cnn1d_confusion_matrix_seed_{seed}.png'
         plot_confusion_matrix(y_test, test_preds, direction_classes, str(cm_path))
         
         # Save accuracy summary
-        summary_path = output_dir / 'cnn1d_accuracy_summary.txt'
+        summary_path = output_dir / f'cnn1d_accuracy_summary_seed_{seed}.txt'
         with open(summary_path, 'w') as f:
             f.write("1D CNN Model Results\n")
             f.write("="*50 + "\n\n")
+            f.write(f"Data Split: Train=70, Dev=15, Test=15\n\n")
             f.write(f"Training Accuracy: {train_acc:.4f}\n")
+            f.write(f"Dev Accuracy: {dev_acc:.4f}\n")
             f.write(f"Test Accuracy: {test_acc:.4f}\n\n")
             f.write("Per-class Test Accuracy:\n")
             for i, class_name in enumerate(direction_classes):
