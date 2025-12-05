@@ -85,16 +85,6 @@ def load_sequence_data(keypoints_dir, labels_df):
 
 
 def map_label_to_direction(label):
-    """
-    Map 9-class labels to 3-class directions.
-    Maps faults (4d, 4n, 4w, 4x, 6d, 6n) to their base direction (4 or 6).
-    
-    Args:
-        label: String or numeric label like '4', '4d', 4, '5', '6', '6n', etc.
-    
-    Returns:
-        Mapped label: '4', '5', or '6'
-    """
     # Convert to string if not already
     label_str = str(label)
     
@@ -729,7 +719,7 @@ def main():
     Randomly splits 100 examples into train (70), dev (15), and test (15).
     """
     # Set random seed for reproducibility
-    seed = 3
+    seed = 14
     np.random.seed(seed)
     
     # Paths

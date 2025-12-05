@@ -1,0 +1,13 @@
+GRU Model Results
+==================================================
+
+Data Split: Train=70, Dev=15, Test=15
+
+Training Accuracy: 0.6000
+Dev Accuracy: 0.6667
+Test Accuracy: 0.2667
+
+Per-class Test Accuracy:
+  4: 0.2500 (4 samples)
+  5: 0.4286 (7 samples)
+  6: 0.0000 (4 samples)
