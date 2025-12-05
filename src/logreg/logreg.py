@@ -6,6 +6,30 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 
+def map_label_to_direction(label):
+    """
+    Map 9-class labels to 3-class directions.
+    Maps faults (4d, 4n, 4w, 4x, 6d, 6n) to their base direction (4 or 6).
+    
+    Args:
+        label: String or numeric label like '4', '4d', 4, '5', '6', '6n', etc.
+    
+    Returns:
+        Mapped label: '4', '5', or '6'
+    """
+    # Convert to string if not already
+    label_str = str(label)
+    
+    if label_str.startswith('4'):
+        return '4'
+    elif label_str.startswith('5'):
+        return '5'
+    elif label_str.startswith('6'):
+        return '6'
+    else:
+        raise ValueError(f"Unknown label: {label} (type: {type(label)})")
+
+
 def load_keypoints_data(keypoints_dir, labels_df):
     """
     Load keypoints data from JSON files and match with labels.
@@ -273,7 +297,7 @@ def plot_confusion_matrix(y_true, y_pred, class_names, save_path):
            yticklabels=class_names,
            xlabel='Predicted label',
            ylabel='True label',
-           title='Confusion Matrix (9x9 - All Classes)')
+           title='Confusion Matrix - Softmax Regression')
     
     # Rotate the tick labels and set their alignment
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
@@ -292,29 +316,15 @@ def plot_confusion_matrix(y_true, y_pred, class_names, save_path):
     plt.close()
     print(f"Confusion matrix saved to {save_path}")
 
-def grouped_accuracy_int(y_true, y_pred, class_names):
-    group_map = {
-        '4': '4', '4d': '4', '4n': '4', '4w': '4', '4x': '4',
-        '5': '5',
-        '6': '6', '6d': '6', '6n': '6'
-    }
-
-    correct = 0
-    for yt, yp in zip(y_true, y_pred):
-        true_label = class_names[yt]
-        pred_label = class_names[yp]
-
-        if group_map[true_label] == group_map[pred_label]:
-            correct += 1
-
-    return correct / len(y_true)
-
 def main():
     """
     Main function to train and evaluate the softmax regression model.
+    Randomly splits 100 examples into train (70), dev (15), and test (15).
+    Maps labels to 3 classes (4, 5, 6).
     """
     # Set random seed for reproducibility
-    np.random.seed(42)
+    seed = 5
+    np.random.seed(seed)
     
     # Paths
     project_dir = Path(__file__).parent.parent.parent
@@ -328,64 +338,78 @@ def main():
     df = pd.read_csv(labels_path)
     print(f"Total samples in CSV: {len(df)}")
     
-    # Split based on "Test Set" column
-    # Test set: rows where "Test Set" column equals "Test"
-    # Training set: all other rows
-    df_test = df[df['Test Set'] == 'Test'].copy()
-    df_train = df[df['Test Set'] != 'Test'].copy()
+    # Load all keypoints data first
+    print("\nLoading all keypoints data...")
+    X_all, y_all_raw, all_ids = load_keypoints_data(str(keypoints_dir), df)
+    print(f"Loaded {len(X_all)} total samples with {X_all.shape[1]} features each")
     
-    print(f"Training samples in CSV: {len(df_train)}")
-    print(f"Test samples in CSV: {len(df_test)}")
-    
-    # Print test set details for verification
-    print("\nTest set samples:")
-    for idx, row in df_test.iterrows():
-        serve_type = "1st" if pd.notna(row['1st']) else "2nd" if pd.notna(row['2nd']) else "unknown"
-        print(f"  Pt {row['Pt']}, {serve_type} serve, Label: {row['Serve Result']}")
-    
-    # Define class names
-    class_names = ['4', '4d', '4n', '4w', '4x', '5', '6', '6d', '6n']
-    
-    # Load keypoints data
-    print("\nLoading keypoints data for training set...")
-    X_train, y_train, train_ids = load_keypoints_data(str(keypoints_dir), df_train)
-    print(f"Loaded {len(X_train)} training samples with {X_train.shape[1]} features each")
-    
-    print("\nLoading keypoints data for test set...")
-    X_test, y_test, test_ids = load_keypoints_data(str(keypoints_dir), df_test)
-    print(f"Loaded {len(X_test)} test samples")
-    
-    # Check if we have data
-    if len(X_train) == 0:
-        print("Error: No training data loaded!")
+    if len(X_all) == 0:
+        print("Error: No data loaded!")
         return
     
-    print(f"\nDataset split:")
+    # Map labels to 3 classes (4, 5, 6)
+    print("\nMapping labels to 3 classes (4, 5, 6)...")
+    direction_classes = ['4', '5', '6']
+    direction_to_idx = {d: i for i, d in enumerate(direction_classes)}
+    idx_to_label = {i: d for d, i in direction_to_idx.items()}
+    
+    # Convert labels to strings if they're not already (handles numeric labels)
+    y_all_raw_str = [str(label) for label in y_all_raw]
+    y_all = np.array([direction_to_idx[map_label_to_direction(label)] for label in y_all_raw_str])
+    
+    print(f"Label distribution (all data):")
+    for i, cls in enumerate(direction_classes):
+        count = np.sum(y_all == i)
+        print(f"  {cls}: {count} samples")
+    
+    # Randomly split into train (70), dev (15), test (15)
+    n_total = len(X_all)
+    n_train = 70
+    n_dev = 15
+    n_test = 15
+    
+    if n_total != n_train + n_dev + n_test:
+        print(f"Warning: Total samples ({n_total}) doesn't match expected split (70+15+15=100)")
+        print(f"Adjusting split to match available data...")
+        n_test = n_total - n_train - n_dev
+    
+    # Shuffle indices
+    indices = np.random.permutation(n_total)
+    
+    train_indices = indices[:n_train]
+    dev_indices = indices[n_train:n_train + n_dev]
+    test_indices = indices[n_train + n_dev:n_train + n_dev + n_test]
+    
+    # Split data
+    X_train = X_all[train_indices]
+    y_train = y_all[train_indices]
+    
+    X_dev = X_all[dev_indices]
+    y_dev = y_all[dev_indices]
+    
+    X_test = X_all[test_indices]
+    y_test = y_all[test_indices]
+    
+    print(f"\nData split:")
     print(f"  Training: {len(X_train)} samples")
+    print(f"  Dev/Eval: {len(X_dev)} samples")
     print(f"  Test: {len(X_test)} samples")
     
-    # Encode labels
-    y_train_enc = np.array([class_names.index(label) for label in y_train])
-    label_to_idx = {label: idx for idx, label in enumerate(class_names)}
-    idx_to_label = {idx: label for label, idx in label_to_idx.items()}
-    
-    if len(X_test) > 0:
-        y_test_enc = np.array([label_to_idx[label] for label in y_test])
-    
     # Normalize features (important for gradient descent)
+    # Use training data statistics only
     print("\nNormalizing features...")
     mean = np.mean(X_train, axis=0)
     std = np.std(X_train, axis=0)
     std[std == 0] = 1  # Avoid division by zero
     
     X_train_norm = (X_train - mean) / std
-    if len(X_test) > 0:
-        X_test_norm = (X_test - mean) / std
+    X_dev_norm = (X_dev - mean) / std
+    X_test_norm = (X_test - mean) / std
     
     # Add intercept term
     X_train_norm = np.hstack([np.ones((X_train_norm.shape[0], 1)), X_train_norm])
-    if len(X_test) > 0:
-        X_test_norm = np.hstack([np.ones((X_test_norm.shape[0], 1)), X_test_norm])
+    X_dev_norm = np.hstack([np.ones((X_dev_norm.shape[0], 1)), X_dev_norm])
+    X_test_norm = np.hstack([np.ones((X_test_norm.shape[0], 1)), X_test_norm])
     
     # Train model
     print("\n" + "="*50)
@@ -393,7 +417,7 @@ def main():
     print("="*50)
     
     clf = SoftmaxRegression(
-        num_classes=len(class_names),
+        num_classes=len(direction_classes),
         step_size=0.1,
         max_iter=2000,
         eps=1e-6,
@@ -401,62 +425,89 @@ def main():
         use_gradient_descent=True
     )
     
-    clf.fit(X_train_norm, y_train_enc)
+    clf.fit(X_train_norm, y_train)
     
     # Evaluate on training set
     print("\n" + "="*50)
     print("Training Set Results")
     print("="*50)
-    train_accuracy = clf.score(X_train_norm, y_train_enc)
+    train_accuracy = clf.score(X_train_norm, y_train)
     print(f"Training Accuracy: {train_accuracy:.4f}")
     
     # Per-class accuracy on training set
     train_predictions = clf.predict(X_train_norm)
     print("\nPer-class accuracy (Training):")
-    for i, class_name in enumerate(class_names):
-        mask = y_train_enc == i
+    for i, class_name in enumerate(direction_classes):
+        mask = y_train == i
         if np.sum(mask) > 0:
-            class_acc = np.mean(train_predictions[mask] == y_train_enc[mask])
+            class_acc = np.mean(train_predictions[mask] == y_train[mask])
             print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
     
-    train_group_acc = grouped_accuracy_int(y_train_enc, train_predictions, class_names)
-    print(f"\n\nTraining Grouped Accuracy: {train_group_acc:.4f}")
-    # Evaluate on test set if available
+    # Evaluate on dev set
+    print("\n" + "="*50)
+    print("Dev/Eval Set Results")
+    print("="*50)
+    dev_accuracy = clf.score(X_dev_norm, y_dev)
+    print(f"Dev Accuracy: {dev_accuracy:.4f}")
+    
+    dev_predictions = clf.predict(X_dev_norm)
+    print("\nPer-class accuracy (Dev):")
+    for i, class_name in enumerate(direction_classes):
+        mask = y_dev == i
+        if np.sum(mask) > 0:
+            class_acc = np.mean(dev_predictions[mask] == y_dev[mask])
+            print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
+    
+    # Evaluate on test set
     if len(X_test) > 0:
         print("\n" + "="*50)
         print("Test Set Results")
         print("="*50)
-        test_accuracy = clf.score(X_test_norm, y_test_enc)
+        test_accuracy = clf.score(X_test_norm, y_test)
         print(f"Test Accuracy: {test_accuracy:.4f}")
         
         test_predictions = clf.predict(X_test_norm)
         test_probs = clf.predict_proba(X_test_norm)
         
         # Save test predictions
-        test_pred_path = output_dir / 'test_predictions.txt'
+        test_pred_path = output_dir / f'test_predictions_seed_{seed}.txt'
         with open(test_pred_path, 'w') as f:
             f.write("Sample,True_Label,Predicted_Label,Confidence\n")
-            for i in range(len(y_test_enc)):
-                true_label = idx_to_label[y_test_enc[i]]
+            for i in range(len(y_test)):
+                true_label = idx_to_label[y_test[i]]
                 pred_label = idx_to_label[test_predictions[i]]
                 confidence = test_probs[i, test_predictions[i]]
                 f.write(f"{i},{true_label},{pred_label},{confidence:.4f}\n")
         print(f"Test predictions saved to {test_pred_path}")
         
         # Plot confusion matrix for test set
-        cm_test_path = output_dir / 'confusion_matrix_test.png'
-        plot_confusion_matrix(y_test_enc, test_predictions, class_names, str(cm_test_path))
+        cm_test_path = output_dir / f'confusion_matrix_test_seed_{seed}.png'
+        plot_confusion_matrix(y_test, test_predictions, direction_classes, str(cm_test_path))
         
         # Per-class accuracy
         print("\nPer-class accuracy (Test):")
-        for i, class_name in enumerate(class_names):
-            mask = y_test_enc == i
+        for i, class_name in enumerate(direction_classes):
+            mask = y_test == i
             if np.sum(mask) > 0:
-                class_acc = np.mean(test_predictions[mask] == y_test_enc[mask])
+                class_acc = np.mean(test_predictions[mask] == y_test[mask])
                 print(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)")
-    
-        test_group_acc  = grouped_accuracy_int(y_test_enc, test_predictions, class_names)
-        print(f"\n\nTest Grouped Accuracy: {test_group_acc:.4f}")
+        
+        # Save accuracy summary
+        summary_path = output_dir / f'logreg_accuracy_summary_seed_{seed}.txt'
+        with open(summary_path, 'w') as f:
+            f.write("Softmax Regression Model Results\n")
+            f.write("="*50 + "\n\n")
+            f.write(f"Data Split: Train=70, Dev=15, Test=15\n\n")
+            f.write(f"Training Accuracy: {train_accuracy:.4f}\n")
+            f.write(f"Dev Accuracy: {dev_accuracy:.4f}\n")
+            f.write(f"Test Accuracy: {test_accuracy:.4f}\n\n")
+            f.write("Per-class Test Accuracy:\n")
+            for i, class_name in enumerate(direction_classes):
+                mask = y_test == i
+                if np.sum(mask) > 0:
+                    class_acc = np.mean(test_predictions[mask] == y_test[mask])
+                    f.write(f"  {class_name}: {class_acc:.4f} ({np.sum(mask)} samples)\n")
+        print(f"Accuracy summary saved to {summary_path}")
 
     print("\n" + "="*50)
     print("Training complete!")

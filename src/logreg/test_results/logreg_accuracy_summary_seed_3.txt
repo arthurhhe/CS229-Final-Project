@@ -1,0 +1,13 @@
+Softmax Regression Model Results
+==================================================
+
+Data Split: Train=70, Dev=15, Test=15
+
+Training Accuracy: 1.0000
+Dev Accuracy: 0.4000
+Test Accuracy: 0.4667
+
+Per-class Test Accuracy:
+  4: 0.5000 (6 samples)
+  5: 0.5000 (6 samples)
+  6: 0.3333 (3 samples)
